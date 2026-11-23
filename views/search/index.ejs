@@ -1,0 +1,171 @@
+<%- include('../partials/header') %>
+
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/profile.css">
+
+<main class="board-wrapper">
+  <div class="container">
+
+    <!-- 1. 통합 검색 헤더 -->
+    <div style="margin-bottom: 24px;">
+      <h1 style="font-size: 1.8rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+        <span style="color: var(--accent-cyan-light);">🔍</span>
+        커뮤니티 통합 검색
+      </h1>
+      <p style="color: var(--text-dim); font-size: 0.95rem; margin-top: 4px;">
+        GameCafe의 모든 게임 라운지와 게시판에서 원하는 공략, 정보, 파티 모집글을 찾아보세요.
+      </p>
+    </div>
+
+    <!-- 2. 검색 필터 카드 -->
+    <div class="search-filter-card">
+      <form action="/search" method="GET" class="search-filter-grid">
+        <!-- 게임 라운지 필터 -->
+        <div>
+          <select name="game" class="search-select" style="width: 100%;">
+            <option value="all" <%= selectedGame === 'all' ? 'selected' : '' %>>모든 게임 라운지</option>
+            <% if (typeof games !== 'undefined' && games.length > 0) { %>
+              <% games.forEach(g => { %>
+                <option value="<%= g.slug %>" <%= selectedGame === g.slug ? 'selected' : '' %>>
+                  <%= g.name %>
+                </option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
+
+        <!-- 카테고리 필터 -->
+        <div>
+          <select name="category" class="search-select" style="width: 100%;">
+            <option value="all" <%= selectedCategory === 'all' ? 'selected' : '' %>>모든 게시판</option>
+            <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
+              <% categories.forEach(c => { %>
+                <option value="<%= c.slug %>" <%= selectedCategory === c.slug ? 'selected' : '' %>>
+                  <%= c.name %>
+                </option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
+
+        <!-- 검색 대상 필터 -->
+        <div>
+          <select name="type" class="search-select" style="width: 100%;">
+            <option value="all" <%= searchType === 'all' ? 'selected' : '' %>>제목 + 내용</option>
+            <option value="title" <%= searchType === 'title' ? 'selected' : '' %>>제목만</option>
+            <option value="content" <%= searchType === 'content' ? 'selected' : '' %>>내용만</option>
+            <option value="author" <%= searchType === 'author' ? 'selected' : '' %>>작성자</option>
+          </select>
+        </div>
+
+        <!-- 검색어 입력 -->
+        <div>
+          <input 
+            type="text" 
+            name="query" 
+            class="search-input" 
+            style="width: 100%; padding: 10px 14px;" 
+            placeholder="검색할 키워드를 입력하세요..." 
+            value="<%= searchQuery %>" 
+            autofocus
+          >
+        </div>
+
+        <div>
+          <button type="submit" class="btn btn-primary" style="padding: 9px 20px;">
+            검색하기
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 3. 검색 결과 요약 안내 -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <div style="font-size: 0.95rem; color: var(--text-secondary);">
+        <% if (searchQuery) { %>
+          <strong>'<%= searchQuery %>'</strong> 검색 결과 : 총 <span style="color: var(--accent-cyan-light); font-weight: 700;"><%= totalCount %></span>건
+        <% } else { %>
+          전체 게시글 : 총 <span style="color: var(--accent-cyan-light); font-weight: 700;"><%= totalCount %></span>건
+        <% } %>
+      </div>
+    </div>
+
+    <!-- 4. 검색 결과 목록 테이블 -->
+    <div class="board-table-container">
+      <table class="board-table">
+        <thead>
+          <tr>
+            <th style="width: 130px;">게임 라운지</th>
+            <th style="width: 100px;">카테고리</th>
+            <th>제목</th>
+            <th style="width: 130px;">작성자</th>
+            <th style="width: 100px;">작성일</th>
+            <th style="width: 70px; text-align: center;">조회</th>
+            <th style="width: 70px; text-align: center;">추천</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (typeof posts !== 'undefined' && posts.length > 0) { %>
+            <% posts.forEach(post => { %>
+              <tr>
+                <td>
+                  <a href="/games/<%= post.game_slug || 'lol' %>" class="badge badge-game">
+                    <%= post.game_name || '전체공지' %>
+                  </a>
+                </td>
+                <td><span class="badge badge-category"><%= post.category_name %></span></td>
+                <td>
+                  <a href="/posts/<%= post.id %>" class="post-title-link">
+                    <%= post.title %>
+                    <% if (post.comment_count > 0) { %>
+                      <span class="comment-count-badge">[<%= post.comment_count %>]</span>
+                    <% } %>
+                  </a>
+                </td>
+                <td>
+                  <a href="/users/<%= post.user_id %>" style="color: var(--text-secondary);">
+                    <%= post.author_nickname %>
+                  </a>
+                </td>
+                <td style="color: var(--text-dim); font-size: 0.85rem;"><%= post.created_at ? post.created_at.substring(0, 10) : '' %></td>
+                <td style="text-align: center; color: var(--text-dim);"><%= post.view_count %></td>
+                <td style="text-align: center; color: var(--accent-rose); font-weight: 700;"><%= post.like_count %></td>
+              </tr>
+            <% }); %>
+          <% } else { %>
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 60px 20px; color: var(--text-dim);">
+                <div style="font-size: 2rem; margin-bottom: 12px;">🔍</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">일치하는 검색 결과가 없습니다.</div>
+                <p style="font-size: 0.9rem;">검색어 철자를 확인하시거나 다른 필터 조건으로 다시 검색해 보세요.</p>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 5. 검색 결과 페이징 -->
+    <% if (totalPages > 1) { %>
+      <div class="pagination" style="justify-content: center; margin-top: 30px;">
+        <% const queryParams = `query=${encodeURIComponent(searchQuery)}&game=${selectedGame}&category=${selectedCategory}&type=${searchType}`; %>
+        <% if (currentPage > 1) { %>
+          <a href="/search?<%= queryParams %>&page=<%= currentPage - 1 %>" class="page-btn">&laquo;</a>
+        <% } %>
+
+        <% for (let p = 1; p <= totalPages; p++) { %>
+          <a href="/search?<%= queryParams %>&page=<%= p %>" class="page-btn <%= currentPage === p ? 'active' : '' %>">
+            <%= p %>
+          </a>
+        <% } %>
+
+        <% if (currentPage < totalPages) { %>
+          <a href="/search?<%= queryParams %>&page=<%= currentPage + 1 %>" class="page-btn">&raquo;</a>
+        <% } %>
+      </div>
+    <% } %>
+
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

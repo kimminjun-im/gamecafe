@@ -1,0 +1,292 @@
+<%- include('../partials/header') %>
+
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/profile.css">
+
+<main class="profile-wrapper">
+  <div class="container">
+
+    <!-- 1. 알림 메시지 (성공 / 에러) -->
+    <% if (typeof successMessage !== 'undefined' && successMessage) { %>
+      <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; padding: 14px 20px; border-radius: var(--radius-md); margin-bottom: 24px; font-weight: 600;">
+        <%= successMessage %>
+      </div>
+    <% } %>
+    <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+      <div style="background: rgba(244, 63, 94, 0.12); border: 1px solid rgba(244, 63, 94, 0.35); color: #fb7185; padding: 14px 20px; border-radius: var(--radius-md); margin-bottom: 24px; font-weight: 600;">
+        <%= errorMessage %>
+      </div>
+    <% } %>
+
+    <!-- 2. 프로필 상단 요약 카드 -->
+    <div class="profile-card">
+      <div class="profile-header-content">
+        <!-- 유저 아바타 및 기본 정보 -->
+        <div class="profile-user-info">
+          <div class="profile-avatar-large">
+            <% if (profileUser.profile_image && profileUser.profile_image !== '/images/default-avatar.png') { %>
+              <img src="<%= profileUser.profile_image %>" alt="<%= profileUser.nickname %>">
+            <% } else { %>
+              <%= (profileUser.nickname || 'U').charAt(0) %>
+            <% } %>
+          </div>
+
+          <div class="profile-meta-details">
+            <h1>
+              <%= profileUser.nickname %>
+              <% if (profileUser.role === 'admin') { %>
+                <span class="badge badge-global-notice" style="font-size: 0.72rem;">ADMIN</span>
+              <% } %>
+            </h1>
+            <div style="font-size: 0.85rem; color: var(--text-dim);">
+              가입일: <%= profileUser.created_at ? profileUser.created_at.substring(0, 10) : '' %>
+            </div>
+            <p class="profile-bio">
+              <%= profileUser.bio || '등록된 자기소개가 없습니다.' %>
+            </p>
+          </div>
+        </div>
+
+        <!-- 활동 통계 위젯 -->
+        <div class="profile-stats-grid">
+          <div class="profile-stat-box">
+            <div class="stat-number"><%= stats.postCount %></div>
+            <div class="stat-label">작성글</div>
+          </div>
+          <div class="profile-stat-box">
+            <div class="stat-number"><%= stats.commentCount %></div>
+            <div class="stat-label">작성댓글</div>
+          </div>
+          <div class="profile-stat-box">
+            <div class="stat-number" style="color: var(--accent-rose);"><%= stats.likeReceived %></div>
+            <div class="stat-label">받은 추천</div>
+          </div>
+          <% if (isOwner) { %>
+            <div>
+              <button type="button" id="btnToggleEditProfile" class="btn btn-secondary btn-sm" style="height: 100%; padding: 12px 16px;">
+                프로필 수정
+              </button>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- 본인 프로필 수정 폼 (토글 박스) -->
+      <% if (isOwner) { %>
+        <div id="profileEditBox" class="profile-edit-box" style="display: none;">
+          <h3>⚙️ 프로필 정보 수정</h3>
+          <form action="/profile/edit" method="POST" enctype="multipart/form-data">
+            <!-- 닉네임 수정 -->
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label for="nickname" class="form-label">닉네임</label>
+              <input 
+                type="text" 
+                id="nickname" 
+                name="nickname" 
+                class="form-input" 
+                style="padding-left: 14px;" 
+                value="<%= profileUser.nickname %>" 
+                required
+              >
+              <span class="form-help">2~20자의 한글, 영문, 숫자, 밑줄, 하이픈만 허용됩니다.</span>
+            </div>
+
+            <!-- 자기소개 수정 -->
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label for="bio" class="form-label">자기소개 (한 줄 소개)</label>
+              <input 
+                type="text" 
+                id="bio" 
+                name="bio" 
+                class="form-input" 
+                style="padding-left: 14px;" 
+                placeholder="나를 소개하는 한 줄을 남겨보세요." 
+                value="<%= profileUser.bio || '' %>" 
+                maxlength="150"
+              >
+            </div>
+
+            <!-- 프로필 이미지 업로드 (Multer) -->
+            <div class="form-group" style="margin-bottom: 24px;">
+              <label for="profile_image" class="form-label">프로필 이미지 변경</label>
+              <input 
+                type="file" 
+                id="profile_image" 
+                name="profile_image" 
+                class="form-input" 
+                style="padding: 10px 14px;" 
+                accept="image/png, image/jpeg, image/gif, image/webp"
+              >
+              <span class="form-help">5MB 이하의 이미지 파일(jpg, jpeg, png, gif, webp)만 지원됩니다.</span>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+              <button type="button" id="btnCancelEditProfile" class="btn btn-secondary btn-sm">취소</button>
+              <button type="submit" class="btn btn-primary btn-sm">수정 저장하기</button>
+            </div>
+          </form>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- 3. 활동 탭 네비게이션 -->
+    <div class="profile-tabs-nav">
+      <a href="?tab=posts" class="profile-tab-btn <%= activeTab === 'posts' ? 'active' : '' %>">
+        📝 작성한 게시글 (<%= myPosts.length %>)
+      </a>
+      <% if (isOwner) { %>
+        <a href="?tab=comments" class="profile-tab-btn <%= activeTab === 'comments' ? 'active' : '' %>">
+          💬 작성한 댓글 (<%= myComments.length %>)
+        </a>
+        <a href="?tab=likes" class="profile-tab-btn <%= activeTab === 'likes' ? 'active' : '' %>">
+          ❤️ 좋아요 누른 글 (<%= myLikes.length %>)
+        </a>
+      <% } %>
+    </div>
+
+    <!-- 4. 활동 컨텐츠 영역 -->
+    <div class="activity-card">
+      <!-- 4-1. 작성한 게시글 탭 -->
+      <% if (activeTab === 'posts') { %>
+        <table class="board-table">
+          <thead>
+            <tr>
+              <th style="width: 140px;">게임 라운지</th>
+              <th style="width: 110px;">카테고리</th>
+              <th>제목</th>
+              <th style="width: 120px;">작성일</th>
+              <th style="width: 70px; text-align: center;">조회</th>
+              <th style="width: 70px; text-align: center;">추천</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (myPosts.length > 0) { %>
+              <% myPosts.forEach(post => { %>
+                <tr>
+                  <td>
+                    <span class="badge badge-game"><%= post.game_name || '전체' %></span>
+                  </td>
+                  <td><span class="badge badge-category"><%= post.category_name %></span></td>
+                  <td>
+                    <a href="/posts/<%= post.id %>" class="post-title-link">
+                      <%= post.title %>
+                      <% if (post.comment_count > 0) { %>
+                        <span class="comment-count-badge">[<%= post.comment_count %>]</span>
+                      <% } %>
+                    </a>
+                  </td>
+                  <td style="color: var(--text-dim); font-size: 0.85rem;"><%= post.created_at ? post.created_at.substring(0, 10) : '' %></td>
+                  <td style="text-align: center; color: var(--text-dim);"><%= post.view_count %></td>
+                  <td style="text-align: center; color: var(--accent-rose); font-weight: 700;"><%= post.like_count %></td>
+                </tr>
+              <% }); %>
+            <% } else { %>
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 48px; color: var(--text-dim);">
+                  작성한 게시글이 없습니다.
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+
+      <!-- 4-2. 작성한 댓글 탭 -->
+      <% } else if (activeTab === 'comments' && isOwner) { %>
+        <table class="board-table">
+          <thead>
+            <tr>
+              <th style="width: 140px;">게임 라운지</th>
+              <th>댓글 내용</th>
+              <th style="width: 250px;">원문 게시글</th>
+              <th style="width: 120px;">작성일</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (myComments.length > 0) { %>
+              <% myComments.forEach(comment => { %>
+                <tr>
+                  <td><span class="badge badge-game"><%= comment.game_name || '전체' %></span></td>
+                  <td>
+                    <a href="/posts/<%= comment.post_id %>#comment-<%= comment.id %>" style="color: #ffffff; font-weight: 600;">
+                      <%= comment.content %>
+                    </a>
+                  </td>
+                  <td>
+                    <a href="/posts/<%= comment.post_id %>" style="color: var(--text-muted); font-size: 0.88rem;">
+                      <%= comment.post_title %>
+                    </a>
+                  </td>
+                  <td style="color: var(--text-dim); font-size: 0.85rem;"><%= comment.created_at ? comment.created_at.substring(0, 10) : '' %></td>
+                </tr>
+              <% }); %>
+            <% } else { %>
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 48px; color: var(--text-dim);">
+                  작성한 댓글이 없습니다.
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+
+      <!-- 4-3. 좋아요 누른 글 탭 -->
+      <% } else if (activeTab === 'likes' && isOwner) { %>
+        <table class="board-table">
+          <thead>
+            <tr>
+              <th style="width: 140px;">게임 라운지</th>
+              <th style="width: 110px;">카테고리</th>
+              <th>제목</th>
+              <th style="width: 130px;">작성자</th>
+              <th style="width: 120px;">추천일</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (myLikes.length > 0) { %>
+              <% myLikes.forEach(likePost => { %>
+                <tr>
+                  <td><span class="badge badge-game"><%= likePost.game_name || '전체' %></span></td>
+                  <td><span class="badge badge-category"><%= likePost.category_name %></span></td>
+                  <td>
+                    <a href="/posts/<%= likePost.id %>" class="post-title-link">
+                      <%= likePost.title %>
+                    </a>
+                  </td>
+                  <td style="color: var(--text-secondary);"><%= likePost.author_nickname %></td>
+                  <td style="color: var(--text-dim); font-size: 0.85rem;"><%= likePost.liked_at ? likePost.liked_at.substring(0, 10) : '' %></td>
+                </tr>
+              <% }); %>
+            <% } else { %>
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 48px; color: var(--text-dim);">
+                  좋아요를 누른 게시글이 없습니다.
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  // 프로필 수정 폼 열기/닫기 토글
+  const btnToggle = document.getElementById('btnToggleEditProfile');
+  const btnCancel = document.getElementById('btnCancelEditProfile');
+  const editBox = document.getElementById('profileEditBox');
+
+  if (btnToggle && editBox) {
+    btnToggle.addEventListener('click', () => {
+      editBox.style.display = editBox.style.display === 'none' ? 'block' : 'none';
+    });
+  }
+  if (btnCancel && editBox) {
+    btnCancel.addEventListener('click', () => {
+      editBox.style.display = 'none';
+    });
+  }
+</script>
+
+<%- include('../partials/footer') %>

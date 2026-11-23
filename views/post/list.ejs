@@ -1,0 +1,156 @@
+<%- include('../partials/header') %>
+
+<link rel="stylesheet" href="/css/board.css">
+
+<main class="board-wrapper">
+  <div class="container">
+
+    <!-- 1. 게임 전용 헤더 배너 -->
+    <div class="board-game-banner">
+      <div class="banner-left">
+        <div class="banner-icon">
+          <% if (game.slug === 'lol') { %>⚔️
+          <% } else if (game.slug === 'valorant') { %>🎯
+          <% } else if (game.slug === 'overwatch2') { %>🛡️
+          <% } else if (game.slug === 'minecraft') { %>⛏️
+          <% } else { %>🎮<% } %>
+        </div>
+        <div>
+          <h1 class="banner-title"><%= game.name %> 커뮤니티</h1>
+          <p class="banner-desc"><%= game.description || '최신 정보와 공략을 공유하고 파티를 구해보세요.' %></p>
+        </div>
+      </div>
+      <div>
+        <a href="/games/<%= game.slug %>/write" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          새 글 작성
+        </a>
+      </div>
+    </div>
+
+    <!-- 2. 카테고리 탭 바 -->
+    <div class="category-tabs-container">
+      <div class="category-tabs">
+        <a href="/games/<%= game.slug %>" class="category-tab-item <%= currentCategory === 'all' ? 'active' : '' %>">
+          전체글
+        </a>
+        <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
+          <% categories.forEach(cat => { %>
+            <a href="/games/<%= game.slug %>?category=<%= cat.slug %>" class="category-tab-item <%= currentCategory === cat.slug ? 'active' : '' %>">
+              <%= cat.name %>
+            </a>
+          <% }); %>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- 3. 상단 고정 공지사항 섹션 -->
+    <% if (typeof notices !== 'undefined' && notices.length > 0) { %>
+      <div class="notice-board-section">
+        <% notices.forEach(notice => { %>
+          <div class="notice-row">
+            <% if (notice.notice_type === 'global') { %>
+              <span class="badge badge-global-notice">전체공지</span>
+            <% } else { %>
+              <span class="badge badge-game-notice">게임공지</span>
+            <% } %>
+            <a href="/posts/<%= notice.id %>" class="notice-row-title">
+              <%= notice.title %>
+            </a>
+            <span style="color: var(--text-muted); font-size: 0.85rem;"><%= notice.author_nickname %></span>
+            <span style="color: var(--text-dim); font-size: 0.8rem;"><%= notice.created_at ? notice.created_at.substring(0, 10) : '' %></span>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+
+    <!-- 4. 일반 게시글 목록 테이블 -->
+    <div class="board-table-container">
+      <table class="board-table">
+        <thead>
+          <tr>
+            <th style="width: 70px; text-align: center;">번호</th>
+            <th style="width: 110px;">카테고리</th>
+            <th>제목</th>
+            <th style="width: 130px;">작성자</th>
+            <th style="width: 100px;">작성일</th>
+            <th style="width: 70px; text-align: center;">조회</th>
+            <th style="width: 70px; text-align: center;">추천</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (typeof posts !== 'undefined' && posts.length > 0) { %>
+            <% posts.forEach(post => { %>
+              <tr>
+                <td style="text-align: center; color: var(--text-dim);"><%= post.id %></td>
+                <td><span class="badge badge-category"><%= post.category_name %></span></td>
+                <td>
+                  <a href="/posts/<%= post.id %>" class="post-title-link">
+                    <%= post.title %>
+                    <% if (post.comment_count > 0) { %>
+                      <span class="comment-count-badge">[<%= post.comment_count %>]</span>
+                    <% } %>
+                  </a>
+                </td>
+                <td style="color: var(--text-secondary);"><%= post.author_nickname %></td>
+                <td style="color: var(--text-dim); font-size: 0.85rem;"><%= post.created_at ? post.created_at.substring(0, 10) : '' %></td>
+                <td style="text-align: center; color: var(--text-dim);"><%= post.view_count %></td>
+                <td style="text-align: center; color: var(--accent-rose); font-weight: 700;"><%= post.like_count %></td>
+              </tr>
+            <% }); %>
+          <% } else { %>
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 48px; color: var(--text-dim);">
+                등록된 게시글이 없습니다. 첫 번째 글을 작성해 보세요!
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 5. 하단 페이징 및 검색 바 -->
+    <div class="board-footer-bar">
+      <!-- 페이징 네비게이션 -->
+      <div class="pagination">
+        <% if (currentPage > 1) { %>
+          <a href="/games/<%= game.slug %>?category=<%= currentCategory %>&page=<%= currentPage - 1 %><%= search ? `&search=${search}&type=${searchType}` : '' %>" class="page-btn">&laquo;</a>
+        <% } %>
+
+        <% for (let p = 1; p <= totalPages; p++) { %>
+          <a href="/games/<%= game.slug %>?category=<%= currentCategory %>&page=<%= p %><%= search ? `&search=${search}&type=${searchType}` : '' %>" class="page-btn <%= currentPage === p ? 'active' : '' %>">
+            <%= p %>
+          </a>
+        <% } %>
+
+        <% if (currentPage < totalPages) { %>
+          <a href="/games/<%= game.slug %>?category=<%= currentCategory %>&page=<%= currentPage + 1 %><%= search ? `&search=${search}&type=${searchType}` : '' %>" class="page-btn">&raquo;</a>
+        <% } %>
+      </div>
+
+      <!-- 검색 폼 -->
+      <form action="/games/<%= game.slug %>" method="GET" class="board-search-form">
+        <% if (currentCategory && currentCategory !== 'all') { %>
+          <input type="hidden" name="category" value="<%= currentCategory %>">
+        <% } %>
+        <select name="type" class="search-select">
+          <option value="all" <%= searchType === 'all' ? 'selected' : '' %>>제목+내용</option>
+          <option value="title" <%= searchType === 'title' ? 'selected' : '' %>>제목만</option>
+          <option value="content" <%= searchType === 'content' ? 'selected' : '' %>>내용만</option>
+          <option value="author" <%= searchType === 'author' ? 'selected' : '' %>>작성자</option>
+        </select>
+        <input 
+          type="text" 
+          name="search" 
+          class="search-input" 
+          placeholder="검색어를 입력하세요" 
+          value="<%= typeof search !== 'undefined' ? search : '' %>"
+        >
+        <button type="submit" class="btn btn-secondary btn-sm">검색</button>
+      </form>
+    </div>
+
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

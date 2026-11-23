@@ -1,0 +1,129 @@
+<%- include('../partials/header') %>
+
+<link rel="stylesheet" href="/css/admin.css">
+<link rel="stylesheet" href="/css/board.css">
+
+<div class="admin-layout">
+  <%- include('sidebar') %>
+
+  <main class="admin-main">
+    <div class="admin-page-header">
+      <div>
+        <h1 class="admin-page-title">
+          <span>👥</span>
+          회원 관리
+        </h1>
+        <p style="color: var(--text-dim); font-size: 0.95rem; margin-top: 4px;">
+          전체 가입 회원 목록을 조회하고, 권한 변경 및 비매너 회원 정지/해제를 처리합니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- 성공 / 에러 알림 메시지 -->
+    <% if (successMessage) { %>
+      <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; padding: 12px 18px; border-radius: var(--radius-md); margin-bottom: 20px; font-weight: 600;">
+        <%= successMessage %>
+      </div>
+    <% } %>
+    <% if (errorMessage) { %>
+      <div style="background: rgba(244, 63, 94, 0.12); border: 1px solid rgba(244, 63, 94, 0.35); color: #fb7185; padding: 12px 18px; border-radius: var(--radius-md); margin-bottom: 20px; font-weight: 600;">
+        <%= errorMessage %>
+      </div>
+    <% } %>
+
+    <!-- 회원 검색 폼 -->
+    <div class="admin-card" style="padding: 16px 20px; margin-bottom: 20px;">
+      <form action="/admin/users" method="GET" style="display: flex; gap: 10px; align-items: center;">
+        <input 
+          type="text" 
+          name="search" 
+          class="form-input" 
+          style="padding: 8px 14px; max-width: 320px;" 
+          placeholder="이메일 또는 닉네임 검색..." 
+          value="<%= searchQuery %>"
+        >
+        <button type="submit" class="btn btn-secondary btn-sm">검색</button>
+        <% if (searchQuery) { %>
+          <a href="/admin/users" class="btn btn-secondary btn-sm" style="color: var(--text-dim);">검색 초기화</a>
+        <% } %>
+        <span style="margin-left: auto; color: var(--text-dim); font-size: 0.88rem;">
+          총 회원 수: <strong style="color: #fff;"><%= totalCount %></strong>명
+        </span>
+      </form>
+    </div>
+
+    <!-- 회원 목록 테이블 -->
+    <div class="admin-card" style="padding: 0; overflow: hidden;">
+      <table class="board-table">
+        <thead>
+          <tr>
+            <th style="width: 70px; text-align: center;">ID</th>
+            <th>닉네임</th>
+            <th>이메일</th>
+            <th style="width: 120px;">권한</th>
+            <th style="width: 100px;">상태</th>
+            <th style="width: 120px;">가입일</th>
+            <th style="width: 200px; text-align: center;">관리 작업</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (users && users.length > 0) { %>
+            <% users.forEach(u => { %>
+              <tr>
+                <td style="text-align: center; color: var(--text-dim);"><%= u.id %></td>
+                <td style="font-weight: 700; color: #fff;">
+                  <a href="/users/<%= u.id %>"><%= u.nickname %></a>
+                </td>
+                <td style="color: var(--text-secondary);"><%= u.email %></td>
+                <td>
+                  <form action="/admin/users/<%= u.id %>/role" method="POST" style="display: inline;">
+                    <select name="role" onchange="this.form.submit()" class="search-select" style="padding: 4px 8px; font-size: 0.82rem;" <%= user.id === u.id ? 'disabled title="자기 자신의 권한은 변경할 수 없습니다."' : '' %>>
+                      <option value="user" <%= u.role === 'user' ? 'selected' : '' %>>일반유저</option>
+                      <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>관리자</option>
+                    </select>
+                  </form>
+                </td>
+                <td>
+                  <% if (u.is_banned) { %>
+                    <span class="status-badge-banned">정지됨</span>
+                  <% } else { %>
+                    <span class="status-badge-active">정상 활동</span>
+                  <% } %>
+                </td>
+                <td style="color: var(--text-dim); font-size: 0.85rem;"><%= u.created_at ? u.created_at.substring(0, 10) : '' %></td>
+                <td style="text-align: center;">
+                  <% if (user.id === u.id) { %>
+                    <span style="color: var(--text-dim); font-size: 0.8rem;">(본인 계정)</span>
+                  <% } else { %>
+                    <form action="/admin/users/<%= u.id %>/ban" method="POST" style="display: inline;" onsubmit="return confirm('<%= u.is_banned ? '회원 정지를 해제하시겠습니까?' : '이 회원을 정지 처리하시겠습니까?' %>');">
+                      <input type="hidden" name="is_banned" value="<%= u.is_banned ? '0' : '1' %>">
+                      <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 0.78rem; padding: 4px 10px; color: <%= u.is_banned ? '#34d399' : '#f43f5e' %>;">
+                        <%= u.is_banned ? '정지 해제' : '회원 정지' %>
+                      </button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }); %>
+          <% } else { %>
+            <tr><td colspan="7" style="text-align: center; padding: 48px; color: var(--text-dim);">검색된 회원이 없습니다.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 페이징 -->
+    <% if (totalPages > 1) { %>
+      <div class="pagination" style="justify-content: center; margin-top: 24px;">
+        <% for (let p = 1; p <= totalPages; p++) { %>
+          <a href="/admin/users?page=<%= p %><%= searchQuery ? `&search=${searchQuery}` : '' %>" class="page-btn <%= currentPage === p ? 'active' : '' %>">
+            <%= p %>
+          </a>
+        <% } %>
+      </div>
+    <% } %>
+
+  </main>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,103 @@
+<%- include('../partials/header') %>
+
+<link rel="stylesheet" href="/css/board.css">
+
+<main class="board-wrapper">
+  <div class="container" style="max-width: 900px;">
+
+    <div class="write-card">
+      <header class="write-header">
+        <h1 class="write-title">
+          <%= isEdit ? '게시글 수정' : `${game.name} - 새 글 작성` %>
+        </h1>
+      </header>
+
+      <!-- 에러 메시지 알림 -->
+      <% if (errorMessage) { %>
+        <div style="background: rgba(244, 63, 94, 0.12); border: 1px solid rgba(244, 63, 94, 0.35); color: #fb7185; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px;">
+          <%= errorMessage %>
+        </div>
+      <% } %>
+
+      <form action="<%= isEdit ? `/posts/${post.id}/edit` : `/games/${game.slug}/write` %>" method="POST">
+        <!-- 카테고리 선택 -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label for="category_id" class="form-label" style="display: block; margin-bottom: 8px; font-weight: 600;">게시판 카테고리 <span style="color: var(--accent-rose);">*</span></label>
+          <select name="category_id" id="category_id" class="form-select" required>
+            <option value="">카테고리를 선택하세요</option>
+            <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
+              <% categories.forEach(cat => { %>
+                <!-- 일반 회원은 공지사항 카테고리 선택 불가 -->
+                <% if (cat.slug !== 'notice' || (typeof user !== 'undefined' && user && user.role === 'admin')) { %>
+                  <option value="<%= cat.id %>" <%= String(post.category_id) === String(cat.id) ? 'selected' : '' %>>
+                    <%= cat.name %>
+                  </option>
+                <% } %>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
+
+        <!-- 관리자 전용 공지사항 체크 옵션 -->
+        <% if (typeof user !== 'undefined' && user && user.role === 'admin') { %>
+          <div style="background: var(--bg-surface); border: 1px solid var(--border-accent); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <input type="checkbox" id="is_notice" name="is_notice" value="1" <%= post.notice_type && post.notice_type !== 'none' ? 'checked' : '' %>>
+              <label for="is_notice" style="font-weight: 700; color: #fbbf24; cursor: pointer;">
+                📢 공지사항으로 상단 고정 등록
+              </label>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px; font-size: 0.88rem; color: var(--text-secondary); margin-left: 24px;">
+              <label style="cursor: pointer;">
+                <input type="radio" name="notice_scope" value="game" <%= post.notice_type === 'global' ? '' : 'checked' %>> 이 게임 라운지 공지
+              </label>
+              <label style="cursor: pointer;">
+                <input type="radio" name="notice_scope" value="global" <%= post.notice_type === 'global' ? 'checked' : '' %>> 전역 사이트 전체 공지
+              </label>
+            </div>
+          </div>
+        <% } %>
+
+        <!-- 제목 입력 -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label for="title" class="form-label" style="display: block; margin-bottom: 8px; font-weight: 600;">글 제목 <span style="color: var(--accent-rose);">*</span></label>
+          <input 
+            type="text" 
+            id="title" 
+            name="title" 
+            class="form-input" 
+            style="padding-left: 14px;" 
+            placeholder="제목을 입력하세요" 
+            value="<%= post.title || '' %>" 
+            required
+          >
+        </div>
+
+        <!-- 본문 내용 입력 -->
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label for="content" class="form-label" style="display: block; margin-bottom: 8px; font-weight: 600;">글 내용 <span style="color: var(--accent-rose);">*</span></label>
+          <textarea 
+            id="content" 
+            name="content" 
+            class="form-textarea" 
+            placeholder="자유롭게 공략, 정보, 소식을 작성해 보세요." 
+            required
+          ><%= post.content || '' %></textarea>
+        </div>
+
+        <!-- 버튼 영역 -->
+        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+          <a href="<%= isEdit ? `/posts/${post.id}` : `/games/${game.slug}` %>" class="btn btn-secondary">
+            취소
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <%= isEdit ? '수정 완료' : '게시글 등록' %>
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
